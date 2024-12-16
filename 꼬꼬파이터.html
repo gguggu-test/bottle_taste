@@ -322,7 +322,7 @@
             <thead>
                 <tr>
                     <th>순위</th>
-                    <th>플레���어</th>
+                    <th>꼬꼬이름</th>
                     <th>데시벨</th>
                     <th>날짜</th>
                 </tr>
@@ -415,7 +415,7 @@
                         img.style.animation = 'shake 0.3s infinite';
                     }
 
-                    // 현재 볼륨을 최종 볼륨으로 저장 (최대값이 아닌 현재값 저장)
+                    // 현재 볼륨을 최종 볼으로 저장 (최대값이 아닌 현재값 저장)
                     if (playerNum === 1) {
                         player1MaxVolume = normalizedVolume;
                     } else {
@@ -502,9 +502,12 @@
                     const winnerName = document.getElementById(`player${winner}-name`).value;
                     const loserName = document.getElementById(`player${loser}-name`).value;
 
-                    // 승자/패자 이미지 처리
-                    document.getElementById(`player${winner}-img`).classList.remove('grayscale');
-                    document.getElementById(`player${loser}-img`).classList.add('grayscale');
+                    // 승자는 컬러, 패자는 흑백 처리
+                    const winnerImg = document.getElementById(`player${winner}-img`);
+                    const loserImg = document.getElementById(`player${loser}-img`);
+                    
+                    winnerImg.classList.remove('grayscale'); // 승자 컬러 유지
+                    loserImg.classList.add('grayscale');     // 패자 흑백 처리
 
                     resultDisplay.innerHTML = `
                         <div style="font-size: 48px; margin-bottom: 20px;">🏆 ${winnerName} 승리! 🏆</div>
@@ -514,6 +517,7 @@
                         </div>
                     `;
 
+                    // 승자만 랭킹에 등록
                     if (rankings.length < 5 || winnerVolume > rankings[4]?.volume) {
                         updateRankings(winnerName, winnerVolume);
                     }
