@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decibel Fighter</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Press Start 2P', 'Arial Black', sans-serif;
+            background: linear-gradient(135deg, #2b1055 0%, #7597de 100%);
+        }
+
+        .title-container {
+            margin-top: 20px;
+            margin-bottom: 40px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .main-title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            line-height: 1.2;
+            padding: 15px;
+        }
+
+        #chicken-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin: 30px 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+        }
+
+        #decibel-display {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            padding: 15px 25px;
+            width: auto;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .level-indicator {
+            margin: 40px 0;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .level-label {
+            font-size: clamp(0.6rem, 2vw, 0.8rem);
+            padding: 15px 10px;
+            line-height: 1.5;
+            height: auto;
+        }
+
+        .graph-container {
+            width: 90%;
+            max-width: 600px;
+            margin: 20px 0 40px 0;
+        }
+
+        .graph-bar {
+            height: 25px;
+        }
+
+        .chicken {
+            width: clamp(100px, 30vw, 150px);
+            height: clamp(133px, 40vw, 200px);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: bottom;
+            transform-origin: bottom;
+            cursor: pointer;
+            position: relative;
+            padding: 10px;
+            border: 4px solid transparent;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        #chicken-left {
+            background-image: url('./images/chicken-left.jpg');
+        }
+
+        #chicken-right {
+            background-image: url('./images/chicken-right.jpg');
+            transform: scaleX(-1);
+        }
+
+        .chicken.active {
+            border-color: #00ff00;
+            box-shadow:
+                0 0 10px #00ff00,
+                0 0 20px #00ff00,
+                inset 0 0 10px #00ff00;
+        }
+
+        .chicken:not(.active) {
+            filter: brightness(0.7);
+        }
+
+        .player-label {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.8rem;
+            color: #fff;
+            text-shadow: 0 0 5px #00ff00;
+            opacity: 0.7;
+        }
+
+        #chicken-right .player-label {
+            transform: translateX(-50%) scaleX(-1);
+        }
+
+        .active .player-label {
+            color: #00ff00;
+            opacity: 1;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="title-container">
+        <h1 class="main-title">DECIBEL FIGHTER</h1>
+    </div>
+
+    <div id="chicken-container">
+        <div id="decibel-display">000 dB</div>
+        <div id="chicken-left" class="chicken">
+            <div class="player-label">PLAYER 1</div>
+        </div>
+        <div id="chicken-right" class="chicken">
+            <div class="player-label">PLAYER 2</div>
+        </div>
+    </div>
+
+    <div class="level-indicator">
+        <span class="level-label">LEVEL 1<br>QUIET ZONE<br>
+            < 30 DB</span>
+                <span class="level-label">LEVEL 2<br>BATTLE ZONE<br>30-70 DB</span>
+                <span class="level-label">LEVEL 3<br>DANGER ZONE<br>> 70 DB</span>
+    </div>
+    <div class="graph-container">
+        <div class="graph-bar">
+            <div id="graph-bar-fill" class="graph-bar-fill"></div>
+        </div>
+    </div>
+
+    <script>
+        class DecibelMeter {
+            constructor() {
+                this.chickenLeft = document.getElementById('chicken-left');
+                this.chickenRight = document.getElementById('chicken-right');
+                this.decibelDisplay = document.getElementById('decibel-display');
+                this.graphBarFill = document.getElementById('graph-bar-fill');
+                this.audioContext = null;
+                this.analyser = null;
+                this.activePlayer = null;
+                this.stream = null;
+
+                // 초기 마이크 권한 요청
+                this.requestMicPermission();
+
+                // 플레이어 선택 이벤트 리스너
+                this.chickenLeft.addEventListener('click', () => this.setActivePlayer('left'));
+                this.chickenRight.addEventListener('click', () => this.setActivePlayer('right'));
+            }
+
+            async requestMicPermission() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.decibelDisplay.textContent = 'SELECT PLAYER';
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    this.decibelDisplay.textContent = 'MIC ERROR';
+                }
+            }
+
+            setActivePlayer(player) {
+                // 이전 활성 플레이어 초기화
+                if (this.activePlayer) {
+                    this.activePlayer.classList.remove('active');
+                    this.activePlayer.style.animation = 'none';
+                    this.activePlayer.style.transform =
+                        this.activePlayer === this.chickenRight ? 'scaleX(-1)' : 'none';
+                }
+
+                // 새로운 플레이어 활성화
+                const newPlayer = player === 'left' ? this.chickenLeft : this.chickenRight;
+                newPlayer.classList.add('active');
+                this.activePlayer = newPlayer;
+
+                // 오디오 컨텍스트 초기화
+                if (!this.audioContext) {
+                    this.initAudio();
+                }
+            }
+
+            async initAudio() {
+                if (!this.stream) return;
+
+                this.audioContext = new AudioContext();
+                const source = this.audioContext.createMediaStreamSource(this.stream);
+                this.analyser = this.audioContext.createAnalyser();
+                this.analyser.fftSize = 2048;
+                this.analyser.smoothingTimeConstant = 0.8;
+                source.connect(this.analyser);
+                this.updateDisplay();
+            }
+
+            updateDisplay = () => {
+                if (!this.activePlayer || !this.analyser) return;
+
+                const decibels = this.getDecibels();
+                this.decibelDisplay.textContent = `${Math.round(decibels)} dB`;
+
+                // 그래프 바 업데이트
+                const barWidth = Math.min(100, decibels);
+                this.graphBarFill.style.width = `${barWidth}%`;
+
+                // 데시벨에 따른 애니메이션 계산
+                const scale = 1 + (decibels / 50);
+                const intensity = Math.min(50, decibels);
+                const animationDuration = Math.max(0.05, 0.3 - (decibels / 150));
+
+                // 활성 플레이어 애니메이션 적용
+                const isRight = this.activePlayer === this.chickenRight;
+                const baseTransform = isRight ? 'scaleX(-1)' : '';
+
+                if (decibels > 0) {
+                    const rotation = Math.sin(Date.now() / 100) * intensity;
+                    const translateY = Math.sin(Date.now() / 50) * intensity;
+                    const translateX = Math.cos(Date.now() / 75) * intensity;
+
+                    this.activePlayer.style.transform = `${baseTransform} 
+                        translate(${translateX}px, ${translateY}px) 
+                        rotate(${rotation}deg) 
+                        scale(${scale})`;
+                } else {
+                    this.activePlayer.style.transform = `${baseTransform} scale(1)`;
+                }
+
+                // 색상 효과
+                if (decibels > 80) {
+                    this.activePlayer.style.filter = `hue-rotate(${decibels * 3}deg) brightness(1.5)`;
+                } else {
+                    this.activePlayer.style.filter = 'none';
+                }
+
+                requestAnimationFrame(this.updateDisplay);
+            }
+
+            getDecibels() {
+                const dataArray = new Float32Array(this.analyser.frequencyBinCount);
+                this.analyser.getFloatTimeDomainData(dataArray);
+
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i] * dataArray[i];
+                }
+                const rms = Math.sqrt(sum / dataArray.length);
+
+                if (rms < 0.0002) return 0;
+
+                const db = 20 * Math.log10(rms) + 48;
+                return Math.max(0, Math.min(db, 100));
+            }
+        }
+
+        // 인스턴스 생성
+        const meter = new DecibelMeter();
+    </script>
+</body>
+
+</html>
