@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>꼬꼬파이터</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Black+Han+Sans&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c2c2c;
+            font-family: 'Black Han Sans', sans-serif;
+            color: #fff;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+            width: 800px;
+            margin-top: 50px;
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+            border: 4px solid #ff6b6b;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .player {
+            text-align: center;
+            position: relative;
+            background: #2c2c2c;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #4a4a4a;
+        }
+
+        .player-name {
+            font-family: 'Black Han Sans', sans-serif;
+            border: 2px solid #ff6b6b;
+            background: #2c2c2c;
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            width: 200px;
+            margin-bottom: 15px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .player-name:focus {
+            outline: none;
+            border-color: #ffd93d;
+            box-shadow: 0 0 10px rgba(255, 217, 61, 0.3);
+        }
+
+        .vs {
+            font-family: 'Press Start 2P', cursive;
+            color: #ffd93d;
+            text-shadow: 3px 3px #ff6b6b;
+            margin: 0 30px;
+        }
+
+        .timer {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 36px;
+            color: #ffd93d;
+            text-shadow: 2px 2px #ff6b6b;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .result-display {
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 36px;
+            color: #ffd93d;
+            margin: 30px 0;
+            text-align: center;
+            text-shadow: 3px 3px #ff6b6b;
+            display: none;
+        }
+
+        .ranking-section {
+            margin-top: 50px;
+            width: 800px;
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            border: 4px solid #ff6b6b;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .ranking-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 20px;
+            color: #ffd93d;
+            text-shadow: 2px 2px #ff6b6b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .ranking-list {
+            width: 100%;
+            border-collapse: collapse;
+            color: #fff;
+        }
+
+        .ranking-list th {
+            background-color: #2c2c2c;
+            padding: 15px;
+            border-bottom: 2px solid #ff6b6b;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+        }
+
+        .ranking-list td {
+            padding: 12px;
+            border-bottom: 1px solid #4a4a4a;
+            text-align: center;
+        }
+
+        .home-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #ff6b6b;
+            color: white;
+            border: 2px solid #ffd93d;
+            border-radius: 5px;
+            font-family: 'Black Han Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .home-button:hover {
+            background-color: #ffd93d;
+            border-color: #ff6b6b;
+            transform: scale(1.05);
+        }
+
+        .player-image {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .player-image:hover {
+            border-color: #ffd93d;
+            box-shadow: 0 0 15px rgba(255, 217, 61, 0.3);
+        }
+
+        .player.disabled {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .player img {
+            width: 150px;
+            height: 200px;
+            object-fit: contain;
+        }
+
+        .current-db {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 24px;
+            color: #ffd93d;
+            text-shadow: 2px 2px #ff6b6b;
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .player-container {
+            position: relative;
+            width: 300px;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: visible;
+        }
+
+        .player-image {
+            position: relative;
+            width: 150px;
+            height: 200px;
+        }
+
+        .player img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.2s ease;
+            transform-origin: center center;
+        }
+
+        .restart-button {
+            padding: 15px 30px;
+            background-color: #ffd93d;
+            color: #2c2c2c;
+            border: 2px solid #ff6b6b;
+            border-radius: 5px;
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .restart-button:hover {
+            background-color: #ff6b6b;
+            border-color: #ffd93d;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg) scale(var(--scale));
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg) scale(var(--scale));
+            }
+
+            20% {
+                transform: translate(-2px, 0px) rotate(1deg) scale(var(--scale));
+            }
+
+            30% {
+                transform: translate(2px, 2px) rotate(0deg) scale(var(--scale));
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg) scale(var(--scale));
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg) scale(var(--scale));
+            }
+
+            60% {
+                transform: translate(-2px, 1px) rotate(0deg) scale(var(--scale));
+            }
+
+            70% {
+                transform: translate(2px, 1px) rotate(-1deg) scale(var(--scale));
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg) scale(var(--scale));
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg) scale(var(--scale));
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg) scale(var(--scale));
+            }
+        }
+
+        .grayscale {
+            filter: grayscale(100%);
+        }
+    </style>
+</head>
+
+<body>
+    <button class="home-button" onclick="location.href='index.html'">병맛홈</button>
+
+    <div class="game-container">
+        <div class="player player1">
+            <div class="player-info">
+                <input type="text" class="player-name" id="player1-name" value="이름변경">
+            </div>
+            <div class="player-container">
+                <div class="player-image" onclick="startPlayerTurn(1)">
+                    <img src="images/koko_L.png" alt="플레이어 1" id="player1-img">
+                    <div class="timer" id="timer1">3</div>
+                    <div class="current-db" id="current-db1">0 dB</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="vs">VS</div>
+
+        <div class="player player2">
+            <div class="player-info">
+                <input type="text" class="player-name" id="player2-name" value="이름변경">
+            </div>
+            <div class="player-container">
+                <div class="player-image" onclick="startPlayerTurn(2)">
+                    <img src="images/koko_R.png" alt="플레이어 2" id="player2-img">
+                    <div class="timer" id="timer2">3</div>
+                    <div class="current-db" id="current-db2">0 dB</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-display" id="result-display"></div>
+    <button class="restart-button" onclick="restartGame()">다시하기</button>
+
+    <div class="ranking-section">
+        <h2 class="ranking-title">🏆 내가 최강 꼬꼬 🏆</h2>
+        <table class="ranking-list">
+            <thead>
+                <tr>
+                    <th>순위</th>
+                    <th>플레���어</th>
+                    <th>데시벨</th>
+                    <th>날짜</th>
+                </tr>
+            </thead>
+            <tbody id="ranking-body">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let audioContext;
+        let player1MaxVolume = 0;
+        let player2MaxVolume = 0;
+        let isGameRunning = false;
+        let currentPlayer = null;
+
+        let rankings = JSON.parse(localStorage.getItem('kokoRankings')) || [];
+
+        async function startPlayerTurn(playerNum) {
+            if (isGameRunning) return;
+
+            // 기존 결과 숨기기
+            document.getElementById('result-display').style.display = 'none';
+
+            currentPlayer = playerNum;
+            isGameRunning = true;
+
+            // 다른 플레이어 비활성화
+            document.querySelector(`.player1`).classList.add('disabled');
+            document.querySelector(`.player2`).classList.add('disabled');
+            document.querySelector(`.player${playerNum}`).classList.remove('disabled');
+
+            const timer = document.getElementById(`timer${playerNum}`);
+            timer.style.display = 'block';
+            timer.textContent = '3';
+
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                const source = audioContext.createMediaStreamSource(stream);
+                const analyzer = audioContext.createAnalyser();
+                analyzer.fftSize = 1024;
+                source.connect(analyzer);
+
+                const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+                const startTime = Date.now();
+                let timeLeft = 3000;
+
+                function checkVolume() {
+                    if (!isGameRunning) return;
+
+                    const currentTime = Date.now();
+                    timeLeft = Math.max(0, 3000 - (currentTime - startTime));
+                    timer.textContent = Math.ceil(timeLeft / 1000);
+
+                    analyzer.getByteFrequencyData(dataArray);
+
+                    // 데시벨 계산
+                    const sum = dataArray.reduce((acc, val) => acc + val * val, 0);
+                    const rms = Math.sqrt(sum / dataArray.length);
+                    const db = 20 * Math.log10(Math.max(rms, 1) / 128);
+                    const normalizedVolume = Math.max(0, Math.min(130, db + 90));
+
+                    // 실시간 데시벨 표시
+                    const dbDisplay = document.getElementById(`current-db${playerNum}`);
+                    dbDisplay.textContent = `${Math.round(normalizedVolume)} dB`;
+
+                    // 이미지 크기 조절 (기존 코드와 동일)
+                    const img = document.getElementById(`player${playerNum}-img`);
+                    let scale;
+
+                    if (normalizedVolume < 50) {
+                        scale = 1 + (normalizedVolume / 50);
+                        img.style.transform = `scale(${scale})`;
+                        img.style.animation = 'none';
+                    } else if (normalizedVolume < 100) {
+                        const growthFactor = (normalizedVolume - 50) / 50;
+                        scale = 2 + (8 * Math.pow(growthFactor, 2));
+                        img.style.setProperty('--scale', scale);
+                        img.style.animation = 'shake 0.5s infinite';
+                    } else {
+                        scale = 10 + ((normalizedVolume - 100) / 10);
+                        img.style.setProperty('--scale', scale);
+                        img.style.animation = 'shake 0.3s infinite';
+                    }
+
+                    // 현재 볼륨을 최종 볼륨으로 저장 (최대값이 아닌 현재값 저장)
+                    if (playerNum === 1) {
+                        player1MaxVolume = normalizedVolume;
+                    } else {
+                        player2MaxVolume = normalizedVolume;
+                    }
+
+                    if (timeLeft > 0 && isGameRunning) {
+                        requestAnimationFrame(checkVolume);
+                    } else {
+                        endTurn();
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                }
+
+                checkVolume();
+            } catch (err) {
+                console.error('마이크 접근 권한이 필요합니다:', err);
+                alert('마이크 접근 권한이 필요합니다!');
+                resetGame();
+            }
+        }
+
+        function endTurn() {
+            isGameRunning = false;
+            const timer = document.getElementById(`timer${currentPlayer}`);
+            timer.style.display = 'none';
+
+            const img = document.getElementById(`player${currentPlayer}-img`);
+            img.style.animation = 'none';
+
+            if (player1MaxVolume > 0 && player2MaxVolume > 0) {
+                // 정확히 같은 데시벨일 때만 무승부
+                const isDraw = Math.round(player1MaxVolume) === Math.round(player2MaxVolume);
+
+                // 마지막 크기 계산 함수
+                const calculateScale = (volume) => {
+                    if (volume < 50) {
+                        return 1 + (volume / 50);
+                    } else if (volume < 100) {
+                        return 2 + (8 * Math.pow((volume - 50) / 50, 2));
+                    } else {
+                        return 10 + ((volume - 100) / 10);
+                    }
+                };
+
+                const player1Scale = calculateScale(player1MaxVolume);
+                const player2Scale = calculateScale(player2MaxVolume);
+                const player1Name = document.getElementById('player1-name').value;
+                const player2Name = document.getElementById('player2-name').value;
+
+                // 이미지 크기 설정
+                document.getElementById('player1-img').style.transform = `scale(${player1Scale})`;
+                document.getElementById('player2-img').style.transform = `scale(${player2Scale})`;
+
+                const resultDisplay = document.getElementById('result-display');
+                resultDisplay.style.display = 'block';
+
+                if (isDraw) {
+                    // 무승부 처리 - 두 플레이어 모두 흑백 처리
+                    document.getElementById('player1-img').classList.add('grayscale');
+                    document.getElementById('player2-img').classList.add('grayscale');
+
+                    resultDisplay.innerHTML = `
+                        <div style="font-size: 48px; margin-bottom: 20px;">🤝 무승부! 🤝</div>
+                        <div style="font-size: 32px;">
+                            ${player1Name}: ${Math.round(player1MaxVolume)}dB<br>
+                            ${player2Name}: ${Math.round(player2MaxVolume)}dB
+                        </div>
+                    `;
+
+                    // 두승부일 때 두 플레이어 모두 랭킹 등록 시도
+                    if (rankings.length < 5 || player1MaxVolume > rankings[4]?.volume) {
+                        updateRankings(player1Name, player1MaxVolume);
+                    }
+                    if (rankings.length < 5 || player2MaxVolume > rankings[4]?.volume) {
+                        updateRankings(player2Name, player2MaxVolume);
+                    }
+                } else {
+                    // 승패 처리
+                    const winner = player1MaxVolume > player2MaxVolume ? 1 : 2;
+                    const loser = winner === 1 ? 2 : 1;
+                    const winnerVolume = winner === 1 ? player1MaxVolume : player2MaxVolume;
+                    const loserVolume = winner === 1 ? player2MaxVolume : player1MaxVolume;
+                    const winnerName = document.getElementById(`player${winner}-name`).value;
+                    const loserName = document.getElementById(`player${loser}-name`).value;
+
+                    // 승자/패자 이미지 처리
+                    document.getElementById(`player${winner}-img`).classList.remove('grayscale');
+                    document.getElementById(`player${loser}-img`).classList.add('grayscale');
+
+                    resultDisplay.innerHTML = `
+                        <div style="font-size: 48px; margin-bottom: 20px;">🏆 ${winnerName} 승리! 🏆</div>
+                        <div style="font-size: 32px;">
+                            ${winnerName}의 마지막 데시벨: ${Math.round(winnerVolume)}dB<br>
+                            ${loserName}의 마지막 데시벨: ${Math.round(loserVolume)}dB
+                        </div>
+                    `;
+
+                    if (rankings.length < 5 || winnerVolume > rankings[4]?.volume) {
+                        updateRankings(winnerName, winnerVolume);
+                    }
+                }
+            } else {
+                document.querySelector(`.player1`).classList.remove('disabled');
+                document.querySelector(`.player2`).classList.remove('disabled');
+            }
+        }
+
+        function resetGame() {
+            player1MaxVolume = 0;
+            player2MaxVolume = 0;
+
+            // 이미지 리셋
+            const img1 = document.getElementById('player1-img');
+            const img2 = document.getElementById('player2-img');
+            img1.style.transform = 'scale(1)';
+            img2.style.transform = 'scale(1)';
+            img1.style.animation = 'none';
+            img2.style.animation = 'none';
+
+            document.querySelector('.player1').classList.remove('disabled');
+            document.querySelector('.player2').classList.remove('disabled');
+            document.getElementById('timer1').style.display = 'none';
+            document.getElementById('timer2').style.display = 'none';
+            document.getElementById('current-db1').textContent = '0 dB';
+            document.getElementById('current-db2').textContent = '0 dB';
+
+            currentPlayer = null;
+            isGameRunning = false;
+        }
+
+        function updateRankings(playerName, volume) {
+            if (!playerName || playerName === '이름변경') return; // 이름이 기본값이면 랭킹에 등록하지 않음
+
+            const newRecord = {
+                name: playerName,
+                volume: Math.round(volume),
+                date: new Date().toLocaleDateString()
+            };
+
+            // 이미 있는 플레이어의 기록이면 더 높은 점수만 유지
+            const existingIndex = rankings.findIndex(r => r.name === playerName);
+            if (existingIndex !== -1) {
+                if (rankings[existingIndex].volume < newRecord.volume) {
+                    rankings.splice(existingIndex, 1);
+                } else {
+                    return;
+                }
+            }
+
+            rankings.push(newRecord);
+            rankings.sort((a, b) => b.volume - a.volume);
+            rankings = rankings.slice(0, 5); // 상위 5개만 유지
+
+            try {
+                localStorage.setItem('kokoRankings', JSON.stringify(rankings));
+                displayRankings(); // 랭킹 표시 즉시 업데이트
+            } catch (error) {
+                console.error('랭킹 저장 중 오류 발생:', error);
+            }
+        }
+
+        function displayRankings() {
+            const tbody = document.getElementById('ranking-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            rankings.forEach((record, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${record.name}</td>
+                    <td>${record.volume}dB</td>
+                    <td>${record.date}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function restartGame() {
+            document.getElementById('result-display').style.display = 'none';
+
+            // 이미지 크기와 효과 초기화
+            const img1 = document.getElementById('player1-img');
+            const img2 = document.getElementById('player2-img');
+            img1.style.transform = 'scale(1)';
+            img2.style.transform = 'scale(1)';
+            img1.style.animation = 'none';
+            img2.style.animation = 'none';
+            img1.classList.remove('grayscale');
+            img2.classList.remove('grayscale');
+
+            resetGame();
+
+            document.getElementById('player1-name').value = '이름변경';
+            document.getElementById('player2-name').value = '이름변경';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const savedRankings = localStorage.getItem('kokoRankings');
+                if (savedRankings) {
+                    rankings = JSON.parse(savedRankings);
+                }
+                displayRankings();
+            } catch (error) {
+                console.error('랭킹 로드 중 오류 발생:', error);
+                rankings = [];
+            }
+        });
+    </script>
+</body>
+
+</html>
