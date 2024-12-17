@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>꼬꼬배구</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Black+Han+Sans&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c2c2c;
+            font-family: 'Black Han Sans', sans-serif;
+            color: #fff;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .game-container {
+            width: 800px;
+            height: 500px;
+            background: #1a1a1a;
+            margin-top: 50px;
+            position: relative;
+            border-radius: 10px;
+            border: 4px solid #ff6b6b;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+            overflow: hidden;
+        }
+
+        .player {
+            position: absolute;
+            bottom: 20px;
+            width: 100px;
+            height: 150px;
+            transition: transform 0.3s ease;
+        }
+
+        #player1 {
+            left: 100px;
+        }
+
+        #player2 {
+            right: 100px;
+            transform: scaleX(-1);
+        }
+
+        .ball {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-image: url('images/ball.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: all 0.1s ease;
+            left: 135px;
+            bottom: 170px;
+        }
+
+        .net {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 300px;
+            background: #ff6b6b;
+            bottom: 0;
+        }
+
+        .score {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 48px;
+            color: #ffd93d;
+            text-shadow: 3px 3px #ff6b6b;
+            position: absolute;
+            top: 20px;
+        }
+
+        #score1 { left: 200px; }
+        #score2 { right: 200px; }
+
+        .home-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #ff6b6b;
+            color: white;
+            border: 2px solid #ffd93d;
+            border-radius: 5px;
+            font-family: 'Black Han Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .home-button:hover {
+            background-color: #ffd93d;
+            border-color: #ff6b6b;
+            transform: scale(1.05);
+        }
+
+        .instructions {
+            margin: 20px 0;
+            font-size: 24px;
+            text-align: center;
+            color: #ffd93d;
+        }
+
+        .winner-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #ffd93d;
+            text-shadow: 3px 3px #ff6b6b;
+            display: none;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <button class="home-button" onclick="location.href='index.html'">병맛홈</button>
+    
+    <div class="instructions">
+        소리를 내서 꼬꼬를 점프시켜 배구를 하세요!<br>
+        첫 번째 플레이어는 A키, 두 번째 플레이어는 L키를 누른 상태에서 소리를 내세요!
+    </div>
+
+    <div class="game-container">
+        <div class="score" id="score1">0</div>
+        <div class="score" id="score2">0</div>
+        <div class="net"></div>
+        <img src="images/koko_L.png" class="player" id="player1" alt="Player 1">
+        <img src="images/koko_R.png" class="player" id="player2" alt="Player 2">
+        <img src="images/ball.png" class="ball" alt="Ball">
+        <div class="winner-message" id="winner-message"></div>
+    </div>
+
+    <script>
+        let audioContext;
+        let stream;
+        let isGameRunning = false;
+        let ballPosition = 1; // 1: 플레이어1, 2: 플레이어2
+        let score1 = 0;
+        let score2 = 0;
+        let isBallMoving = false;
+        let isFirstGame = true;
+        
+        // 마이크 초기화
+        async function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioContext.createMediaStreamSource(stream);
+                const analyzer = audioContext.createAnalyser();
+                analyzer.fftSize = 1024;
+                source.connect(analyzer);
+                
+                const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+                
+                function checkVolume() {
+                    if (!isGameRunning) return;
+                    
+                    analyzer.getByteFrequencyData(dataArray);
+                    const rms = Math.sqrt(dataArray.reduce((acc, val) => acc + val * val, 0) / dataArray.length);
+                    const db = 20 * Math.log10(rms / 128);
+                    const volume = Math.max(0, Math.round(db + 90));
+                    
+                    // 소리가 감지되면 (임계값 설정)
+                    if (volume > 30 && !isBallMoving) {
+                        if (ballPosition === 1) {
+                            hitBall(1); // 플레이어 1이 공을 침
+                        } else if (ballPosition === 2) {
+                            hitBall(2); // 플레이어 2가 공을 침
+                        }
+                    }
+                    
+                    requestAnimationFrame(checkVolume);
+                }
+                
+                isGameRunning = true;
+                checkVolume();
+                
+            } catch (err) {
+                console.error('마이크 접근 권한이 필요합니다:', err);
+                alert('마이크 접근 권한이 필요합니다!');
+            }
+        }
+
+        // 공을 치는 함수
+        function hitBall(player) {
+            if (isBallMoving) return;
+            
+            const ball = document.querySelector('.ball');
+            isBallMoving = true;
+            
+            if (player === 1) {
+                // 플레이어 1이 공을 칠 때
+                ball.style.transition = 'all 1s cubic-bezier(.17,.67,.83,.67)';
+                ball.style.left = '665px'; // 플레이어 2의 머리 위 위치
+                ball.style.bottom = '170px';
+                ballPosition = 2;
+            } else {
+                // 플레이어 2가 공을 칠 때
+                ball.style.transition = 'all 1s cubic-bezier(.17,.67,.83,.67)';
+                ball.style.left = '135px'; // 플레이어 1의 머리 위 위치
+                ball.style.bottom = '170px';
+                ballPosition = 1;
+            }
+
+            // 공이 이동을 마치면
+            setTimeout(() => {
+                isBallMoving = false;
+                checkMiss();
+            }, 1000);
+        }
+
+        // 공을 놓쳤는지 체크
+        function checkMiss() {
+            const ball = document.querySelector('.ball');
+            setTimeout(() => {
+                if (!isBallMoving) {
+                    if (ballPosition === 1) {
+                        // 플레이어 1이 놓침
+                        score2++;
+                        updateScore();
+                        resetBall(2);
+                    } else {
+                        // 플레이어 2가 놓침
+                        score1++;
+                        updateScore();
+                        resetBall(1);
+                    }
+                }
+            }, 1000); // 1초 안에 치�� 않으면 실패
+        }
+
+        // 점수 업데이트
+        function updateScore() {
+            document.getElementById('score1').textContent = score1;
+            document.getElementById('score2').textContent = score2;
+            
+            if (score1 >= 5 || score2 >= 5) {
+                endGame();
+            }
+        }
+
+        // 공 위치 초기화
+        function resetBall(startPlayer) {
+            const ball = document.querySelector('.ball');
+            ball.style.transition = 'none';
+            
+            // 첫 게임이면 무조건 플레이어 1에게, 아니면 진 플레이어에게
+            if (isFirstGame) {
+                ball.style.left = '135px';  // 플레이어 1 머리 위
+                ballPosition = 1;
+                isFirstGame = false;
+            } else {
+                if (startPlayer === 1) {
+                    ball.style.left = '135px';  // 플레이어 1 머리 위
+                    ballPosition = 1;
+                } else {
+                    ball.style.left = '665px';  // 플레이어 2 머리 위
+                    ballPosition = 2;
+                }
+            }
+            
+            ball.style.bottom = '170px';
+            isBallMoving = false;
+        }
+
+        // 게임 종료
+        function endGame() {
+            isGameRunning = false;
+            const winner = score1 >= 5 ? 1 : 2;
+            const winnerMessage = document.getElementById('winner-message');
+            winnerMessage.textContent = `플레이어 ${winner} 승리!`;
+            winnerMessage.style.display = 'block';
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // 다음 ���임을 위해 isFirstGame 초기화
+            isFirstGame = true;
+        }
+
+        // 게임 시작
+        window.onload = function() {
+            initAudio();
+            resetBall(1); // 첫 게임은 무조건 플레이어 1부터 시작
+        };
+    </script>
+</body>
+</html> 
